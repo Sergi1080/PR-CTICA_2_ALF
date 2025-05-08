@@ -1,158 +1,151 @@
 %{
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "eazy.h"
-int num_linea = 1;
+
+int numLinea = 1;
+
+int valor_hex(const char *str) {
+    return (int)strtol(str + 2, NULL, 16);
+}
+
+int valor_oct(const char *str) {
+    return (int)strtol(str + 1, NULL, 8);
+}
 %}
 
 %option noyywrap
 %option case-insensitive
-%option yylineno
 
-%x STR CMT
+%x COMMENT
+
+DIGITO          [0-9]
+LETRA           [a-zA-Z]
+ID              [_a-zA-Z][_a-zA-Z0-9]*
+ESPACIO         [ \t\r]+
+NL              \n
+OCTAL           %[0-7]{1,3}
+HEXA            %[hH][0-9a-fA-F]{1,4}
+REAL_COMA       (%{OCTAL}|%{HEXA}|{DIGITO}+)?\,{DIGITO}+
+REAL_EXP        (%{OCTAL}|%{HEXA}|{DIGITO}+)?(\,{DIGITO}+)?exp[+-]?({DIGITO}+|%{OCTAL}|%{HEXA})
+CARACTER_OCT    "%[0-7]{1,3}"
+CARACTER_HEX    "%[hH][0-9a-fA-F]{1,2}"
+CARACTER_SIMPLE \"(\\.|[^\"\n%])\"
+CARACTER        {CARACTER_SIMPLE}|{CARACTER_OCT}|{CARACTER_HEX}
+CADENA          \"([^\"\n]|\\.|%[^\n])*?\"
 
 %%
 
-[ \t\r]+        ;
-\n              { num_linea++; }
+"%%".*                   { /* comentario línea */ }
+"%/"                     { BEGIN(COMMENT); }
+<COMMENT>"/%"            { BEGIN(INITIAL); }
+<COMMENT>.|\n             { /* dentro de comentario */ }    
 
-"%%".*          ;
-"%/"            { BEGIN(CMT); }
-<CMT>"/%"       { BEGIN(INITIAL); }
-<CMT>.|\n       ;
+"abstracto"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ABSTRACTO; }
+"cada"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CADA; }
+"cadena"         { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CADENA; }
+"caracter"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CARACTER; }
+"clase"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CLASE; }
+"como"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return COMO; }
+"constantes"     { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CONSTANTES; }
+"constructor"    { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CONSTRUCTOR; }
+"continuar"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return CONTINUAR; }
+"de"             { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return DE; }
+"defecto"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return DEFECTO; }
+"destructor"     { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return DESTRUCTOR; }
+"devolver"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return DEVOLVER; }
+"ejecuta"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return EJECUTA; }
+"en"             { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return EN; }
+"encambio"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ENCAMBIO; }
+"entero"         { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ENTERO; }
+"enumeracion"    { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ENUMERACION; }
+"es"             { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ES; }
+"escape"         { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ESCAPE; }
+"especifico"     { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ESPECIFICO; }
+"estructura"     { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ESTRUCTURA; }
+"etiqueta"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ETIQUETA; }
+"excepcion"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return EXCEPCION; }
+"fichero"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return FICHERO; }
+"final"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return FINAL; }
+"fin"            { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return FIN; }
+"funcion"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return FUNCION; }
+"generico"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return GENERICO; }
+"hash"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return HASH; }
+"hacer"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return HACER; }
+"importar"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return IMPORTAR; }
+"lanza"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return LANZA; }
+"mientras"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return MIENTRAS; }
+"nada"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return NADA; }
+"otra"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return OTRA; }
+"para"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PARA; }
+"principio"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PRINCIPIO; }
+"privado"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PRIVADO; }
+"programa"       { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PROGRAMA; }
+"protegido"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PROTEGIDO; }
+"publico"        { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return PUBLICO; }
+"real"           { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return REAL; }
+"ref"            { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return REF; }
+"tabla"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return TABLA; }
+"tipos"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return TIPOS; }
+"union"          { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return UNION; }
+"variables"      { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return VARIABLES; }
+"ultima"         { printf("linea %d, palabra reservada: %s\n", numLinea, yytext); return ULTIMA; }
 
-\"              { BEGIN(STR); }
-<STR>\"         { BEGIN(INITIAL); printf("linea %d, constante cadena: %s\n", num_linea, yytext); return CTC_CADENA; }
-<STR>"%\\n"     ;
-<STR>\\\"       ;
-<STR>\\%        ;
-<STR>\\-        ;
-<STR>\\+        ;
-<STR>\\*        ;
-<STR>\n         ;
-<STR>.          ;
 
-\"([^\"\n%]|%[\"\%fnrt]|%[0-7]{1,3}|%[hH][0-9A-Fa-f]{1,2})\" { 
-    printf("linea %d, constante caracter: %s\n", num_linea, yytext); 
-    return CTC_CARACTER; 
-}
+"::"   { printf("linea %d, delimitador: ::\n", numLinea); return PTOS; }
+":="   { printf("linea %d, operador: :=\n", numLinea); return ASIG; }
+"->="  { printf("linea %d, operador: ->=\n", numLinea); return FD_ASIG; }
+"<-="  { printf("linea %d, operador: <-=\n", numLinea); return FI_ASIG; }
+"**="  { printf("linea %d, operador: **=\n", numLinea); return POT_ASIG; }
+"mod=" { printf("linea %d, operador: mod=\n", numLinea); return MOD_ASIG; }
+"+="   { printf("linea %d, operador: +=\n", numLinea); return SUMA_ASIG; }
+"-="   { printf("linea %d, operador: -=\n", numLinea); return RESTA_ASIG; }
+"*="   { printf("linea %d, operador: *=\n", numLinea); return MULT_ASIG; }
+"/="   { printf("linea %d, operador: /=\n", numLinea); return DIV_ASIG; }
+"=="   { printf("linea %d, operador: ==\n", numLinea); return EQ; }
+"!="   { printf("linea %d, operador: !=\n", numLinea); return NEQ; }
+"<="   { printf("linea %d, operador: <=\n", numLinea); return LE; }
+">="   { printf("linea %d, operador: >=\n", numLinea); return GE; }
+"&&"   { printf("linea %d, operador: &&\n", numLinea); return AND; }
+"||"   { printf("linea %d, operador: ||\n", numLinea); return OR; }
+"->"   { printf("linea %d, operador: ->\n", numLinea); return FLECHA_DCHA; }
+"<-"   { printf("linea %d, operador: <-\n", numLinea); return FLECHA_IZDA; }
+"**"   { printf("linea %d, operador: **\n", numLinea); return POTENCIA; }
+"mod"  { printf("linea %d, operador: mod\n", numLinea); return MOD; }
+"tamano" { printf("linea %d, operador: tamano\n", numLinea); return TAMANO; }
+"="    { printf("linea %d, operador: =\n", numLinea); return '='; }
 
-[0-9]+          { printf("linea %d, constante entera: %s\n", num_linea, yytext); return CTC_ENTERA; }
-"%"[0-7]+       { printf("linea %d, constante entera: %s\n", num_linea, yytext); return CTC_ENTERA; }
-"%h"[0-9A-Fa-f]+ { printf("linea %d, constante entera: %s\n", num_linea, yytext); return CTC_ENTERA; }
-([0-9]+","[0-9]+)|(","[0-9]+) { printf("linea %d, constante real: %s\n", num_linea, yytext); return CTC_REAL; }
-"%h"[0-9A-Fa-f]+","[0-9A-Fa-f]+ { printf("linea %d, constante real: %s\n", num_linea, yytext); return CTC_REAL; }
-"%"[0-7]+","[0-7]+ { printf("linea %d, constante real: %s\n", num_linea, yytext); return CTC_REAL; }
-([0-9]+|([0-9]+","[0-9]+)|(","[0-9]+))"exp"[+\-]?[0-9]+ { printf("linea %d, constante real: %s\n", num_linea, yytext); return CTC_REAL; }
+[(){}\[\]:;] { printf("linea %d, delimitador: %s\n", numLinea, yytext); return yytext[0]; }
+"."        { printf("linea %d, delimitador: .\n", numLinea); return '.'; }
+[+\-*/%^~@] { printf("linea %d, operador: %s\n", numLinea, yytext); return yytext[0]; }
 
-[(){}\[\]:;.]   { printf("linea %d, delimitador: %s\n", num_linea, yytext); return yytext[0]; }
-"::"            { printf("linea %d, delimitador: ::\n", num_linea); return PTOS; }
-"->"            { printf("linea %d, operador: ->\n", num_linea); return FLECHA_DCHA; }
+{ID}    { printf("linea %d, identificador: %s\n", numLinea, yytext); return IDENTIFICADOR; }
 
-":="            { printf("linea %d, operador: :=\n", num_linea); return ASIG; }
-"+="            { printf("linea %d, operador: +=\n", num_linea); return SUMA_ASIG; }
-"-="            { printf("linea %d, operador: -=\n", num_linea); return RESTA_ASIG; }
-"*="            { printf("linea %d, operador: *=\n", num_linea); return MULT_ASIG; }
-"/="            { printf("linea %d, operador: /=\n", num_linea); return DIV_ASIG; }
-"mod="          { printf("linea %d, operador: mod=\n", num_linea); return MOD_ASIG; }
-"**="           { printf("linea %d, operador: **=\n", num_linea); return POT_ASIG; }
-"<-="           { printf("linea %d, operador: <-=\n", num_linea); return FI_ASIG; }
-"->="           { printf("linea %d, operador: ->=\n", num_linea); return FD_ASIG; }
-"&="            { printf("linea %d, operador: &=\n", num_linea); return AND_ASIG; }
-"@="            { printf("linea %d, operador: @=\n", num_linea); return XOR_ASIG; }
-"|="            { printf("linea %d, operador: |=\n", num_linea); return OR_ASIG; }
-"=="            { printf("linea %d, operador: ==\n", num_linea); return EQ; }
-"!="            { printf("linea %d, operador: !=\n", num_linea); return NEQ; }
-"<="            { printf("linea %d, operador: <=\n", num_linea); return LE; }
-">="            { printf("linea %d, operador: >=\n", num_linea); return GE; }
-"&&"            { printf("linea %d, operador: &&\n", num_linea); return AND; }
-"||"            { printf("linea %d, operador: ||\n", num_linea); return OR; }
-"!"             { printf("linea %d, operador: !\n", num_linea); return '!'; }
-"mod"           { printf("linea %d, operador: mod\n", num_linea); return MOD; }
-"**"            { printf("linea %d, operador: **\n", num_linea); return POTENCIA; }
-"<-"            { printf("linea %d, operador: <-\n", num_linea); return FLECHA_IZDA; }
-"^?"            { printf("linea %d, operador: ^?\n", num_linea); return INDIRECCION; }
-"tamano"        { printf("linea %d, operador: tamano\n", num_linea); return TAMANO; }
-"-"             { printf("linea %d, operador: -\n", num_linea); return '-'; }
-"+"             { printf("linea %d, operador: +\n", num_linea); return '+'; }
-"*"             { printf("linea %d, operador: *\n", num_linea); return '*'; }
-"%"             { printf("linea %d, operador: %%\n", num_linea); return '%'; }
-"~"             { printf("linea %d, operador: ~\n", num_linea); return '~'; }
-"@"             { printf("linea %d, operador: @\n", num_linea); return '@'; }
+{REAL_EXP}  { printf("linea %d, constante real: %s\n", numLinea, yytext); return CTC_REAL; }
+{REAL_COMA} { printf("linea %d, constante real: %s\n", numLinea, yytext); return CTC_REAL; }
+{HEXA}     { int v=valor_hex(yytext); if(v>0x7FFF){printf("linea %d, ERROR: hexadecimal fuera de rango: %s\n",numLinea,yytext);return 999;} printf("linea %d, constante entera: %s\n",numLinea,yytext);return CTC_ENTERA; }
+{OCTAL}    { int v=valor_oct(yytext); if(v>01777){printf("linea %d, ERROR: octal fuera de rango: %s\n",numLinea,yytext);return 999;} printf("linea %d, constante entera: %s\n",numLinea,yytext);return CTC_ENTERA; }
+{DIGITO}+  { printf("linea %d, constante entera: %s\n",numLinea,yytext); return CTC_ENTERA; }
 
-"abstracto"     { printf("linea %d, palabra reservada: abstracto\n", num_linea); return ABSTRACTO; }
-"array"         { printf("linea %d, palabra reservada: array\n", num_linea); return TABLA; }
-"cadena"        { printf("linea %d, palabra reservada: cadena\n", num_linea); return CADENA; }
-"caracter"      { printf("linea %d, palabra reservada: caracter\n", num_linea); return CARACTER; }
-"clase"         { printf("linea %d, palabra reservada: clase\n", num_linea); return CLASE; }
-"como"          { printf("linea %d, palabra reservada: como\n", num_linea); return COMO; }
-"constantes"    { printf("linea %d, palabra reservada: constantes\n", num_linea); return CONSTANTES; }
-"constructor"   { printf("linea %d, palabra reservada: constructor\n", num_linea); return CONSTRUCTOR; }
-"continuar"     { printf("linea %d, palabra reservada: continuar\n", num_linea); return CONTINUAR; }
-"cada"          { printf("linea %d, palabra reservada: cada\n", num_linea); return CADA; }
-"de"            { printf("linea %d, palabra reservada: de\n", num_linea); return DE; }
-"defecto"       { printf("linea %d, palabra reservada: defecto\n", num_linea); return DEFECTO; }
-"destructor"    { printf("linea %d, palabra reservada: destructor\n", num_linea); return DESTRUCTOR; }
-"devolver"      { printf("linea %d, palabra reservada: devolver\n", num_linea); return DEVOLVER; }
-"ejecuta"       { printf("linea %d, palabra reservada: ejecuta\n", num_linea); return EJECUTA; }
-"en"            { printf("linea %d, palabra reservada: en\n", num_linea); return EN; }
-"encambio"      { printf("linea %d, palabra reservada: encambio\n", num_linea); return ENCAMBIO; }
-"entero"        { printf("linea %d, palabra reservada: entero\n", num_linea); return ENTERO; }
-"enumeracion"   { printf("linea %d, palabra reservada: enumeracion\n", num_linea); return ENUMERACION; }
-"es"            { printf("linea %d, palabra reservada: es\n", num_linea); return ES; }
-"escape"        { printf("linea %d, palabra reservada: escape\n", num_linea); return ESCAPE; }
-"especifico"    { printf("linea %d, palabra reservada: especifico\n", num_linea); return ESPECIFICO; }
-"estructura"    { printf("linea %d, palabra reservada: estructura\n", num_linea); return ESTRUCTURA; }
-"etiqueta"      { printf("linea %d, palabra reservada: etiqueta\n", num_linea); return ETIQUETA; }
-"excepcion"     { printf("linea %d, palabra reservada: excepcion\n", num_linea); return EXCEPCION; }
-"fichero"       { printf("linea %d, palabra reservada: fichero\n", num_linea); return FICHERO; }
-"final"         { printf("linea %d, palabra reservada: final\n", num_linea); return FINAL; }
-"fin"           { printf("linea %d, palabra reservada: fin\n", num_linea); return FIN; }
-"funcion"       { printf("linea %d, palabra reservada: funcion\n", num_linea); return FUNCION; }
-"generico"      { printf("linea %d, palabra reservada: generico\n", num_linea); return GENERICO; }
-"hash"          { printf("linea %d, palabra reservada: hash\n", num_linea); return HASH; }
-"hacer"         { printf("linea %d, palabra reservada: hacer\n", num_linea); return HACER; }
-"importar"      { printf("linea %d, palabra reservada: importar\n", num_linea); return IMPORTAR; }
-"lanza"         { printf("linea %d, palabra reservada: lanza\n", num_linea); return LANZA; }
-"mientras"      { printf("linea %d, palabra reservada: mientras\n", num_linea); return MIENTRAS; }
-"nada"          { printf("linea %d, palabra reservada: nada\n", num_linea); return NADA; }
-"otra"          { printf("linea %d, palabra reservada: otra\n", num_linea); return OTRA; }
-"para"          { printf("linea %d, palabra reservada: para\n", num_linea); return PARA; }
-"principio"     { printf("linea %d, palabra reservada: principio\n", num_linea); return PRINCIPIO; }
-"privado"       { printf("linea %d, palabra reservada: privado\n", num_linea); return PRIVADO; }
-"programa"      { printf("linea %d, palabra reservada: programa\n", num_linea); return PROGRAMA; }
-"protegido"     { printf("linea %d, palabra reservada: protegido\n", num_linea); return PROTEGIDO; }
-"publico"       { printf("linea %d, palabra reservada: publico\n", num_linea); return PUBLICO; }
-"real"          { printf("linea %d, palabra reservada: real\n", num_linea); return REAL; }
-"ref"           { printf("linea %d, palabra reservada: ref\n", num_linea); return REF; }
-"saltar"        { printf("linea %d, palabra reservada: saltar\n", num_linea); return SALTAR; }
-"si"            { printf("linea %d, palabra reservada: si\n", num_linea); return SI; }
-"sino"          { printf("linea %d, palabra reservada: sino\n", num_linea); return SINO; }
-"tabla"         { printf("linea %d, palabra reservada: tabla\n", num_linea); return TABLA; }
-"tipos"         { printf("linea %d, palabra reservada: tipos\n", num_linea); return TIPOS; }
-"union"         { printf("linea %d, palabra reservada: union\n", num_linea); return UNION; }
-"variables"     { printf("linea %d, palabra reservada: variables\n", num_linea); return VARIABLES; }
-"ultima"        { printf("linea %d, palabra reservada: ultima\n", num_linea); return ULTIMA; }
+{CARACTER} { if(yytext[1]=='%'&&(yytext[2]=='h'||yytext[2]=='H')){int v=valor_hex(yytext);if(v>0x7F){printf("linea %d, ERROR: caracter hexadecimal fuera de rango: %s\n",numLinea,yytext);return 999;}} else if(yytext[1]=='%'){int v=valor_oct(yytext);if(v>0177){printf("linea %d, ERROR: caracter octal fuera de rango: %s\n",numLinea,yytext);return 999;}} printf("linea %d, constante caracter: %s\n",numLinea,yytext); return CTC_CARACTER; }
 
-[a-zA-Z_][a-zA-Z0-9_]* { printf("linea %d, identificador: %s\n", num_linea, yytext); return IDENTIFICADOR; }
+{CADENA} { printf("linea %d, constante cadena: %s\n",numLinea,yytext); return CTC_CADENA; }
 
-.               { printf("Error línea %d: Carácter no válido '%s'\n", num_linea, yytext); }
+{ESPACIO} { }
+{NL}      { numLinea++; }
+
+. { printf("linea %d, ERROR: símbolo no reconocido: %s\n",numLinea,yytext); return 999; }
 
 %%
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Uso: %s <fichero.e>\n", argv[0]);
-        return 1;
+
+  if (argc < 2) {
+    printf("Uso: ./eazy NombreArchivo\n");
     }
-    
-    yyin = fopen(argv[1], "r");
-    if (!yyin) {
-        perror("Error al abrir archivo");
-        return 1;
-    }
-    
+  else {
+    yyin = fopen(argv[1],"r");
     while (yylex());
-    
-    fclose(yyin);
-    return 0;
-}
+    }
+  }
