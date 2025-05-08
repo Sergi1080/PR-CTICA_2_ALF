@@ -1,17 +1,30 @@
 %{
-  #include <stdio.h>
-  extern FILE *yyin;
-  extern int yylex();
-  int yyerror(char *);
+#include <stdio.h>
+#include <stdlib.h>
+extern FILE *yyin;
+extern int yylex();
+int yyerror(char *);
 %}
 
 %define parse.error verbose
-%token ABSTRACTO AND ASIG AND_ASIG CADA CADENA CARACTER CLASE COMO CONSTANTES CONSTRUCTOR CONTINUAR CTC_CADENA
-%token CTC_CARACTER CTC_ENTERA CTC_REAL DE DEFECTO DESTRUCTOR DEVOLVER DIV_ASIG EJECUTA ENCAMBIO ENTERO
-%token ENUMERACION EQ EN ES ESCAPE ESPECIFICO ESTRUCTURA ETIQUETA EXCEPCION FD_ASIG FI_ASIG FICHERO FIN FINAL
-%token FLECHA_DCHA FLECHA_IZDA FUNCION GENERICO HACER HASH GE IDENTIFICADOR IMPORTAR INDIRECCION LANZA LE MIENTRAS
-%token MOD MOD_ASIG MULT_ASIG NADA NEQ OR OTRA OR_ASIG PARA POT_ASIG POTENCIA PRINCIPIO PRIVADO PROGRAMA PROTEGIDO
-%token PTOS PUBLICO REAL REF RESTA_ASIG SALTAR SI SINO SUMA_ASIG TAMANO TABLA TIPOS ULTIMA UNION VARIABLES XOR_ASIG
+
+%union {
+    int ival;
+    char *str;
+}
+
+%token <ival> CTC_ENTERA
+%token <ival> CTC_REAL
+%token <str> CTC_CADENA
+%token <str> CTC_CARACTER
+%token <str> IDENTIFICADOR
+%token PROGRAMA PTOS SI SINO ASIG EQ NEQ OR
+%token ENTERO TIPOS CONSTANTES VARIABLES FUNCION
+
+%left '+' '-'
+%left '*' '/'
+%left EQ NEQ
+%left OR
 
 %%
 
@@ -37,7 +50,14 @@ declaraciones_opt : /* vacío */
                   | declaraciones_opt declaracion ;
 
 declaracion : declaraciones_constantes
-            | declaraciones_variables ;
+            | declaraciones_tipos ;
+
+declaraciones_tipos : TIPOS lista_tipos FIN ;
+
+lista_tipos : lista_tipos declaracion_tipo
+            | declaracion_tipo ;
+
+declaracion_tipo : IDENTIFICADOR ES ENTERO PTOS ;
 
 declaraciones_constantes : CONSTANTES lista_constantes FIN ;
 
@@ -113,24 +133,24 @@ lista_args : expresion
 %%
 
 int yyerror(char *s) {
-  fprintf(stderr, "Error sintáctico: %s\n", s);
-  return 0;
+    fprintf(stderr, "Error sintáctico: %s\n", s);
+    return 0;
 }
 
 int yywrap() {
-  return 1;
+    return 1;
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    printf("Uso: ./eazy archivo.e\n");
-    return 1;
-  }
-  yyin = fopen(argv[1], "r");
-  if (!yyin) {
-    perror("No se pudo abrir el archivo");
-    return 1;
-  }
-  yyparse();
-  return 0;
+    if (argc < 2) {
+        printf("Uso: ./eazy archivo.e\n");
+        return 1;
+    }
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("No se pudo abrir el archivo");
+        return 1;
+    }
+    yyparse();
+    return 0;
 }
