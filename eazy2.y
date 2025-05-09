@@ -19,7 +19,6 @@
 %token FLECHA_DCHA FLECHA_IZDA FUNCION GENERICO HACER HASH GE IDENTIFICADOR IMPORTAR INDIRECCION LANZA LE MIENTRAS
 %token MOD MOD_ASIG MULT_ASIG NADA NEQ OR OTRA OR_ASIG PARA POT_ASIG POTENCIA PRINCIPIO PRIVADO PROGRAMA PROTEGIDO
 %token PTOS PUBLICO REAL REF RESTA_ASIG SALTAR SI SINO SUMA_ASIG TAMANO TABLA TIPOS ULTIMA UNION VARIABLES XOR_ASIG
-%token ARROW
 
 %left OR
 %left AND
@@ -31,6 +30,13 @@
 %right UMINUS
 
 %%
+/* Visibilidad genérica para tipos, constantes y variables */
+visibilidad_opt:
+    /* vacío */
+  | PUBLICO
+  | PRIVADO
+  | PROTEGIDO
+  ;
 
 /*****************/
 /* Programa      */
@@ -40,11 +46,30 @@ programa:
     { printf("Reducida: programa -> PROGRAMA IDENTIFICADOR PTOS librerias_opt bloque_programa (línea %d)\n", numLinea); }
   ;
 
+/************************/
+/* Librerías e imports  */
+/************************/
 librerias_opt:
     /* vacío */
     { printf("Reducida: librerias_opt -> vacío (línea %d)\n", numLinea); }
-  | librerias_opt IMPORTAR IDENTIFICADOR PTOS
-    { printf("Reducida: librerias_opt -> librerias_opt IMPORTAR IDENTIFICADOR PTOS (línea %d)\n", numLinea); }
+  | librerias_opt IMPORTAR lista_nombres PTOS
+    { printf("Reducida: librerias_opt -> librerias_opt IMPORTAR lista_nombres PTOS (línea %d)\n", numLinea); }
+  | librerias_opt IMPORTAR nombre COMO IDENTIFICADOR PTOS
+    { printf("Reducida: librerias_opt -> librerias_opt IMPORTAR nombre COMO IDENTIFICADOR PTOS (línea %d)\n", numLinea); }
+  ;
+
+lista_nombres:
+    lista_nombres PTOS nombre
+    { printf("Reducida: lista_nombres -> lista_nombres PTOS nombre (línea %d)\n", numLinea); }
+  | nombre
+    { printf("Reducida: lista_nombres -> nombre (línea %d)\n", numLinea); }
+  ;
+
+nombre:
+    IDENTIFICADOR
+    { printf("Reducida: nombre -> IDENTIFICADOR (línea %d)\n", numLinea); }
+  | nombre PTOS IDENTIFICADOR
+    { printf("Reducida: nombre -> nombre PTOS IDENTIFICADOR (línea %d)\n", numLinea); }
   ;
 
 bloque_programa:
@@ -72,10 +97,18 @@ lista_tipos:
   ;
 
 declaracion_tipo:
-    IDENTIFICADOR ES tipo_basico PTOS
+    visibilidad_opt IDENTIFICADOR ES tipo_basico PTOS
     { printf("Reducida: declaracion_tipo -> IDENTIFICADOR ES tipo_basico PTOS (línea %d)\n", numLinea); }
-  | IDENTIFICADOR ES ENUMERACION lista_enum FIN PTOS
+  | visibilidad_opt IDENTIFICADOR ES ENUMERACION lista_enum FIN PTOS
     { printf("Reducida: declaracion_tipo -> IDENTIFICADOR ES ENUMERACION lista_enum FIN PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt IDENTIFICADOR ES ESTRUCTURA lista_campos FIN PTOS
+    { printf("Reducida: declaracion_tipo -> IDENTIFICADOR ES ESTRUCTURA lista_campos FIN PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt IDENTIFICADOR ES UNION lista_campos FIN PTOS
+    { printf("Reducida: declaracion_tipo -> IDENTIFICADOR ES UNION lista_campos FIN PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt IDENTIFICADOR ES CLASE clase_decl FIN PTOS
+    { printf("Reducida: declaracion_tipo -> IDENTIFICADOR ES CLASE clase_decl FIN PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt IDENTIFICADOR ES error PTOS
+    { yyerrok; printf("Error en definición de tipo, recuperación en PTOS (línea %d)\n", numLinea); }
   ;
 
 tipo_basico:
@@ -85,6 +118,16 @@ tipo_basico:
   | CARACTER    { printf("Reducida: tipo_basico -> CARACTER (línea %d)\n", numLinea); }
   | FICHERO     { printf("Reducida: tipo_basico -> FICHERO (línea %d)\n", numLinea); }
   | EXCEPCION   { printf("Reducida: tipo_basico -> EXCEPCION (línea %d)\n", numLinea); }
+  | tipo_tabla  { printf("Reducida: tipo_basico -> tipo_tabla (línea %d)\n", numLinea); }
+  ;
+
+especificacion_tipo:
+    tipo_basico
+    { printf("Reducida: especificacion_tipo -> tipo_basico (línea %d)\n", numLinea); }
+  | tipo_estructurado
+    { printf("Reducida: especificacion_tipo -> tipo_estructurado (línea %d)\n", numLinea); }
+  | REF especificacion_tipo
+    { printf("Reducida: especificacion_tipo -> REF especificacion_tipo (línea %d)\n", numLinea); }
   ;
 
 lista_enum:
@@ -92,6 +135,81 @@ lista_enum:
     { printf("Reducida: lista_enum -> lista_enum PTOS elemento_enum (línea %d)\n", numLinea); }
   | elemento_enum
     { printf("Reducida: lista_enum -> elemento_enum (línea %d)\n", numLinea); }
+  ;
+
+lista_campos:
+    lista_campos linea_campo
+    { printf("Reducida: lista_campos -> lista_campos linea_campo (línea %d)\n", numLinea); }
+  | linea_campo
+    { printf("Reducida: lista_campos -> linea_campo (línea %d)\n", numLinea); }
+  ;
+
+tipo_tabla:
+    TABLA DE especificacion_tipo
+  | TABLA HASH DE especificacion_tipo
+  ;
+
+/************************/
+/* Clases               */
+/************************/
+
+/* Declaración de clase: opcionalmente 'ultima', opcional herencia, luego componentes */
+clase_decl:
+    clase_modifiers clase_inherits componentes
+  { printf("Reducida: clase_decl -> clase_modifiers clase_inherits componentes (línea %d)\n", numLinea); }
+  ;
+
+/* Modificador 'ultima' opcional */
+clase_modifiers:
+    /* vacío */
+  | ULTIMA
+  ;
+
+/* Lista de superclases opcional entre paréntesis */
+clase_inherits:
+    /* vacío */
+  | '(' lista_nombres ')'
+  ;
+
+/* Componentes de la clase: tipos, constantes, variables y métodos (al menos un método) */
+componentes:
+    declaraciones_tipos_opt declaraciones_constantes_opt declaraciones_variables_opt lista_metodos
+  { printf("Reducida: componentes -> declaraciones_tipos_opt declaraciones_constantes_opt declaraciones_variables_opt lista_metodos (línea %d)\n", numLinea); }
+  ;
+
+/* Lista no vacía de métodos */
+lista_metodos:
+    lista_metodos declaracion_metodo
+  | declaracion_metodo
+  ;
+
+/* Firma + cuerpo de cada método, con visibilidad y modificador opcionales */
+declaracion_metodo:
+    visibilidad_opt modificador_opt firma_funcion bloque_funcion
+  { printf("Reducida: declaracion_metodo -> visibilidad_opt modificador_opt firma_funcion bloque_funcion (línea %d)\n", numLinea); }
+  ;
+
+/* Modificador de método opcional */
+modificador_opt:
+    /* vacío */
+  | CONSTRUCTOR
+  | DESTRUCTOR
+  | GENERICO
+  | ABSTRACTO
+  | ESPECIFICO
+  | FINAL
+  ;
+
+linea_campo:
+    lista_ids ES especificacion_tipo PTOS
+    { printf("Reducida: linea_campo -> lista_ids ES especificacion_tipo PTOS (línea %d)\n", numLinea); }
+  ;
+
+lista_ids:
+    lista_ids PTOS IDENTIFICADOR
+    { printf("Reducida: lista_ids -> lista_ids PTOS IDENTIFICADOR (línea %d)\n", numLinea); }
+  | IDENTIFICADOR
+    { printf("Reducida: lista_ids -> IDENTIFICADOR (línea %d)\n", numLinea); }
   ;
 
 elemento_enum:
@@ -118,15 +236,73 @@ lista_constantes:
   ;
 
 declaracion_constante:
-    IDENTIFICADOR ES tipo_basico ASIG constante PTOS
-    { printf("Reducida: declaracion_constante -> IDENTIFICADOR ES tipo_basico ASIG constante PTOS (línea %d)\n", numLinea); }
+    visibilidad_opt IDENTIFICADOR ES tipo_basico ASIG constante PTOS
+    { printf("Reducida: declaracion_constante -> visibilidad_opt IDENTIFICADOR ES tipo_basico ASIG constante PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt IDENTIFICADOR ES error PTOS
+    { yyerrok; printf("Error en inicializador de constante, recuperación en PTOS (línea %d)\n", numLinea); }
   ;
 
 constante:
     CTC_ENTERA   { printf("Reducida: constante -> CTC_ENTERA (línea %d)\n", numLinea); }
   | CTC_REAL    { printf("Reducida: constante -> CTC_REAL (línea %d)\n", numLinea); }
   | CTC_CADENA  { printf("Reducida: constante -> CTC_CADENA (línea %d)\n", numLinea); }
-  | CTC_CARACTER{ printf("Reducida: constante -> CTC_CARACTER (línea %d)\n", numLinea); }
+  | CTC_CARACTER { printf("Reducida: constante -> CTC_CARACTER (línea %d)\n", numLinea); }
+  | constante_tabla { printf("Reducida: constante -> constante_tabla (línea %d)\n", numLinea); }
+  | constante_tabla_hash { printf("Reducida: constante -> constante_tabla_hash (línea %d)\n", numLinea); }
+  | constante_estructurada { printf("Reducida: constante -> constante_estructurada (línea %d)\n", numLinea); }
+  ;
+
+/* Literales de tabla */
+constante_tabla:
+    '(' lista_constantes_lit ')'
+    { printf("Reducida: constante_tabla -> '(' lista_constantes_lit ')' (línea %d)\n", numLinea); }
+  ;
+
+lista_constantes_lit:
+    /* vacío */
+  | lista_constantes_lit_nonempty
+  ;
+
+lista_constantes_lit_nonempty:
+    lista_constantes_lit_nonempty PTOS constante
+  | constante
+  ;
+
+/* Literales de tabla hash */
+constante_tabla_hash:
+    '(' lista_hash ')'
+    { printf("Reducida: constante_tabla_hash -> '(' lista_hash ')' (línea %d)\n", numLinea); }
+  ;
+
+lista_hash:
+    /* vacío */
+  | lista_hash_nonempty
+  ;
+
+lista_hash_nonempty:
+    lista_hash_nonempty PTOS elemento_hash
+  | elemento_hash
+  ;
+
+elemento_hash:
+    CTC_CADENA FLECHA_DCHA constante
+    { printf("Reducida: elemento_hash -> CTC_CADENA FLECHA_DCHA constante (línea %d)\n", numLinea); }
+  ;
+
+/* Literales de estructura */
+constante_estructurada:
+    '(' lista_campo_constante ')'
+    { printf("Reducida: constante_estructurada -> '(' lista_campo_constante ')' (línea %d)\n", numLinea); }
+  ;
+
+lista_campo_constante:
+    lista_campo_constante PTOS campo_constante
+  | campo_constante
+  ;
+
+campo_constante:
+    IDENTIFICADOR ASIG constante
+    { printf("Reducida: campo_constante -> IDENTIFICADOR ASIG constante (línea %d)\n", numLinea); }
   ;
 
 /****************************/
@@ -149,8 +325,17 @@ lista_variables:
   ;
 
 declaracion_variable:
-    IDENTIFICADOR ES tipo_basico PTOS
-    { printf("Reducida: declaracion_variable -> IDENTIFICADOR ES tipo_basico PTOS (línea %d)\n", numLinea); }
+    visibilidad_opt lista_ids ES tipo_basico ASIG lista_expresiones PTOS
+    { printf("Reducida: declaracion_variable -> visibilidad_opt lista_ids ES tipo_basico ASIG lista_expresiones PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt lista_ids ES tipo_basico PTOS
+    { printf("Reducida: declaracion_variable -> visibilidad_opt lista_ids ES tipo_basico PTOS (línea %d)\n", numLinea); }
+  | visibilidad_opt lista_ids ES error PTOS
+    { yyerrok; printf("Error en tipo de variable, recuperación en PTOS (línea %d)\n", numLinea); }
+  ;
+
+lista_expresiones:
+    lista_expresiones PTOS expresion
+  | expresion
   ;
 
 /****************************/
@@ -164,8 +349,10 @@ funciones_opt:
   ;
 
 declaracion_funcion:
-    FUNCION IDENTIFICADOR '(' parametros_opt ')' ARROW tipo_basico bloque_funcion
-    { printf("Reducida: declaracion_funcion -> FUNCION IDENTIFICADOR '(' parametros_opt ')' ARROW tipo_basico bloque_funcion (línea %d)\n", numLinea); }
+    visibilidad_opt modificador_opt FUNCION IDENTIFICADOR '(' parametros_opt ')' FLECHA_DCHA tipo_basico bloque_funcion
+    { printf("Reducida: declaracion_funcion -> FUNCION IDENTIFICADOR '(' parametros_opt ')' FLECHA_DCHA especificacion_tipo bloque_funcion (línea %d)\n", numLinea); }
+  | visibilidad_opt modificador_opt FUNCION IDENTIFICADOR '(' error ')'
+    { yyerrok; printf("Error en parámetros de función, recuperación en ')'\n"); }
   ;
 
 parametros_opt:
@@ -185,9 +372,10 @@ lista_parametros:
   ;
 
 parametro:
-    IDENTIFICADOR ES tipo_basico
-    { printf("Reducida: parametro -> IDENTIFICADOR ES tipo_basico (línea %d)\n", numLinea); }
+    lista_ids ES especificacion_tipo
+    { printf("Reducida: parametro -> lista_ids ES especificacion_tipo (línea %d)\n", numLinea); }
   ;
+
 
 bloque_funcion:
     declaraciones_constantes_opt declaraciones_variables_opt bloque_instrucciones
@@ -233,8 +421,12 @@ instruccion:
 instruccion_expresion:
     IDENTIFICADOR ASIG expresion PTOS
     { printf("Reducida: instruccion_expresion -> IDENTIFICADOR ASIG expresion PTOS (línea %d)", numLinea); }
+  | IDENTIFICADOR ASIG error PTOS
+    { yyerrok; printf("Error en expresión de asignación, recuperación en PTOS (línea %d)\n", numLinea); }
   | expresion_funcional PTOS
     { printf("Reducida: instruccion_expresion -> expresion_funcional PTOS (línea %d)", numLinea); }  ;
+  | error PTOS
+    { yyerrok; printf("Error en instrucción, recuperación en PTOS (línea %d)\n", numLinea); }
 
 condicion:
     SI '(' expresion ')' bloque_instrucciones SINO bloque_instrucciones
@@ -368,10 +560,21 @@ expresion_basica:
     { printf("Reducida: expresion_basica -> CTC_CADENA (línea %d)", numLinea); }
   | CTC_CARACTER
     { printf("Reducida: expresion_basica -> CTC_CARACTER (línea %d)", numLinea); }
-  | IDENTIFICADOR
-    { printf("Reducida: expresion_basica -> IDENTIFICADOR (línea %d)", numLinea); }
+  | IDENTIFICADOR sufijo_expresion
+    { printf("Reducida: expresion_basica -> IDENTIFICADOR sufijo_expresion (línea %d)", numLinea); }
   | '(' expresion ')'
     { printf("Reducida: expresion_basica -> '(' expresion ')' (línea %d)", numLinea); }
+  ;
+
+/* Sufijos para acceso a campos e índices */
+sufijo_expresion:
+    /* vacío */
+  | sufijo_expresion '[' expresion ']'
+      { printf("Reducida: sufijo_expresion -> sufijo_expresion '[' expresion ']' (línea %d)\n", numLinea); }
+  | sufijo_expresion error ']'
+    { yyerrok; printf("Error en índice, recuperación en ']' (línea %d)\n", numLinea); }
+  | sufijo_expresion PTOS IDENTIFICADOR
+      { printf("Reducida: sufijo_expresion -> sufijo_expresion PTOS IDENTIFICADOR (línea %d)\n", numLinea); }
   ;
 
 expresion_funcional:
@@ -397,6 +600,38 @@ lista_argumentos:
     { printf("Reducida: lista_argumentos -> expresion (línea %d)", numLinea); }
   ;
 
+/* Lanzar y capturar excepciones */
+excepcion:
+    LANZA EXCEPCION IDENTIFICADOR PTOS
+    { printf("Reducida: excepcion -> LANZA EXCEPCION IDENTIFICADOR PTOS (línea %d)\n", numLinea); }
+  | EJECUTA bloque_instrucciones clausulas
+    { printf("Reducida: excepcion -> EJECUTA bloque_instrucciones clausulas (línea %d)\n", numLinea); }
+  ;
+
+clausulas:
+    clausulas_excepcion clausula_defecto_opt
+  | clausula_defecto
+  ;
+
+clausulas_excepcion:
+    clausulas_excepcion clausula_especifica
+  | clausula_especifica clausula_general
+  ;
+
+clausula_especifica:
+    EXCEPCION nombre bloque_instrucciones
+    { printf("Reducida: clausula_especifica -> EXCEPCION nombre bloque_instrucciones (línea %d)\n", numLinea); }
+  ;
+
+clausula_general:
+    OTRA EXCEPCION bloque_instrucciones
+    { printf("Reducida: clausula_general -> OTRA EXCEPCION bloque_instrucciones (línea %d)\n", numLinea); }
+  ;
+
+clausula_defecto_opt:
+    DEFECTO bloque_instrucciones
+    { printf("Reducida: clausula_defecto -> DEFECTO bloque_instrucciones (línea %d)\n", numLinea); }
+  ;
 
 %%
 
