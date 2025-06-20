@@ -1,8 +1,5 @@
-eazy:	eazy.tab.c eazy.lex.c
-	gcc -o eazy eazy.tab.c lex.yy.c
-eazy.tab.c:	eazy.y
-	bison -dv eazy.y
-eazy.lex.c:	eazy.l
-	flex eazy.l
+simp:	simp.l
+	flex simp.l
+	gcc -o simp lex.yy.c
 clean:
-	rm  eazy.tab.c eazy.tab.h eazy.output lex.yy.c eazy
+	rm -rf lex.yy.c simp

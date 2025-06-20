@@ -1,0 +1,27 @@
+namespace inutil {
+  using standard.math;
+  using standard.io;
+
+  double PI 31.41592**-1; // Definicion de una variable
+  double PIES 0xAA**62;   // Otra definicion de una variable
+
+  int main(int argc, char *argv[]) {
+    /* Variables */
+    float area, radio;
+
+    printf("\nRadio de la /*circunferencia*/\
+           \151\144\x69\157\x74\141: ");
+    scanf("%f", &radio); /* Entrada de dato */
+
+    printf("\\hola22");
+
+    // Calculo del area
+    area = PI * pow(radio, 2);
+
+    /* El resultado del área se saca por la "consola":
+       se trata de un número real */
+    printf("\nArea de la \"circunferencia\": %f", area); printf("\n");
+
+    return 0;
+    }
+  }
