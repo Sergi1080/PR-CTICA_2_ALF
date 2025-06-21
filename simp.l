@@ -7,12 +7,12 @@ int numLinea = 1;
 %option noyywrap
 
 DIGITO        [0-9]
-HEXDIG        \\*\\*[+\\-]?[0-9A-Fa-f]+ 
+HEXDIG        [0-9A-Fa-f]  
 ID            [A-Za-z_][A-Za-z0-9_]*
 ESC_SEQ       \\(['\"?\\nrtv]|[0-7]{1,3}|x[0-9A-Fa-f]{1,2})
 CHAR_CONST    '([^'\\]|{ESC_SEQ})'
-STRING_CHAR   ([^\"\\\n]|ESC_SEQ|\\\n)
-STRING_CONST  \"(STRING_CHAR)*\"
+STRING_CHAR   ([^"\\\n]|{ESC_SEQ}|\\\n)
+STRING_CONST  \"{STRING_CHAR}*\"
 
 %%
 
@@ -20,7 +20,16 @@ STRING_CONST  \"(STRING_CHAR)*\"
 "\n"           { numLinea++; }
 
 "//".*          ;
-"/\*"([^*]|\*+[^*/])*\*+"/"   ;
+"/*" {
+    int c;
+    while ((c = input()) != 0) {
+        if (c == '\n') numLinea++;
+        else if (c == '*') {
+            if ((c = input()) == '/') break;
+            else unput(c);
+        }
+    }
+}
 
 "abstract"     { printf("Linea %d, palabra reservada: abstract\n", numLinea); return ABSTRACT; }
 "base"         { printf("Linea %d, palabra reservada: base\n",     numLinea); return BASE; }
@@ -68,16 +77,23 @@ STRING_CONST  \"(STRING_CHAR)*\"
 
 {ID}           { printf("Linea %d, identificador: %s\n", numLinea, yytext); return IDENTIFICADOR; }
 
-0[xX]{HEXDIG}+                          { printf("Linea %d, ctc entera: %s\n", numLinea, yytext); return ENTERO; }
-0[xX]({HEXDIG}*\\.{HEXDIG}+|{HEXDIG}+\\.{HEXDIG}*)(\\*\\*[+\\-]?[0-9A-Za-z]+)? { printf("Linea %d, ctc real: %s\n", numLinea, yytext); return REAL; }
-0[xX]{HEXDIG}+(\\*\\*[+\\-]?[0-9A-Za-z]+) { printf("Linea %d, ctc real: %s\n", numLinea, yytext); return REAL; }
-({DIGITO}*\\.{DIGITO}+|{DIGITO}+\\.{DIGITO}*)(\\*\\*[+\\-]?[0-9]+)? { printf("Linea %d, ctc real: %s\n", numLinea, yytext); return REAL; }
-{DIGITO}+                               { printf("Linea %d, ctc entera: %s\n", numLinea, yytext); return ENTERO; }
+0[xX]{HEXDIG}*\.{HEXDIG}+(\*\*[+\-]?[0-9A-Fa-f]+)? |
+0[xX]{HEXDIG}+\.{HEXDIG}*(\*\*[+\-]?[0-9A-Fa-f]+)? |
+{DIGITO}*\.{DIGITO}+(\*\*[+\-]?[0-9]+)? |
+{DIGITO}+\.{DIGITO}*(\*\*[+\-]?[0-9]+)? |
+0[xX]{HEXDIG}+(\*\*[+\-]?[0-9A-Fa-f]+) |
+{DIGITO}+(\*\*[+\-]?[0-9]+)   { printf("Linea %d, ctc real: %s\n", numLinea, yytext); return REAL; }
+
+0[xX]{HEXDIG}+  { printf("Linea %d, ctc entera: %s\n", numLinea, yytext); return ENTERO; }
+{DIGITO}+       { printf("Linea %d, ctc entera: %s\n", numLinea, yytext); return ENTERO; }
+
+{STRING_CONST}  { 
+    printf("Linea %d, ctc cadena: %s\n", numLinea, yytext); 
+    return CADENA; 
+}
 
 {CHAR_CONST}    { printf("Linea %d, ctc caracter: %s\n", numLinea, yytext); return CARACTER; }
-{STRING_CONST}  { printf("Linea %d, ctc cadena: %s\n",   numLinea, yytext); return CADENA; }
 
-/* Booleanas */
 "true"         { printf("Linea %d, ctc boolean: true\n",  numLinea); return TRUE; }
 "false"        { printf("Linea %d, ctc boolean: false\n", numLinea); return FALSE; }
 
@@ -93,7 +109,7 @@ STRING_CONST  \"(STRING_CHAR)*\"
 "-="           { printf("Linea %d, operador: -=\n", numLinea); return RESTA_ASIG; }
 "*="           { printf("Linea %d, operador: *=\n", numLinea); return MULT_ASIG; }
 "/="           { printf("Linea %d, operador: /=\n", numLinea); return DIV_ASIG; }
-"%="           { printf("Linea %d, operador: %=\n", numLinea); return MOD_ASIG; }
+"%="           { printf("Linea %d, operador: %%=\n", numLinea); return MOD_ASIG; }
 "&="           { printf("Linea %d, operador: &=\n", numLinea); return AND_ASIG; }
 "^="           { printf("Linea %d, operador: ^=\n", numLinea); return XOR_ASIG; }
 "|="           { printf("Linea %d, operador: |=\n", numLinea); return OR_ASIG; }
@@ -104,7 +120,7 @@ STRING_CONST  \"(STRING_CHAR)*\"
 
 "!"            { printf("Linea %d, operador: !\n", numLinea); return '!'; }
 "="            { printf("Linea %d, operador: =\n", numLinea); return '='; }
-"%"            { printf("Linea %d, operador: %\n", numLinea); return '%'; }
+"%"            { printf("Linea %d, operador: %%\n", numLinea); return '%'; }
 "->"           { printf("Linea %d, operador: ->\n", numLinea); return PTR_ACCESO; }
 
 "("            { printf("Linea %d, delimitador: (\n", numLinea); return '('; }
@@ -128,13 +144,8 @@ STRING_CONST  \"(STRING_CHAR)*\"
 "|"            { printf("Linea %d, operador: |\n", numLinea); return '|'; }
 "&"            { printf("Linea %d, operador: &\n", numLinea); return '&'; }
 
-.               { fprintf(stderr,"Error en linea %d: '%s'\n", numLinea, yytext); }
-
+.              { fprintf(stderr, "Error en linea %d: Caracter invalido '%s'\n", numLinea, yytext); }
 %%
-
-int yywrap() {
-  return 1;
-}
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
